@@ -32,11 +32,20 @@ substitute (x, tx) (App lterm rterm) = App (substitute (x, tx) lterm) (substitut
 -- 3. Implement a function isBetaRedex t which returns True if the top level of the term t is a beta redex.
 
 isBetaRedex :: Term -> Bool
-isBetaRedex (Var a) = False 
-isBetaRedex (Abs id term) = undefined
-isBetaRedex (App lterm rterm) = isBetaRedex lterm || isBetaRedex rterm 
+isBetaRedex (App lterm rterm) = isAbs lterm && (isVar rterm || isAbs rterm)
+isBetaRedex (Abs id term) = False
+isBetaRedex (Var a) = False
+
+isAbs :: Term -> Bool
+isAbs (Abs _ _) = True 
+isAbs _ = False 
+
+isVar :: Term -> Bool
+isVar (Var _) = True 
+isVar _ = False 
 
 -- 4. Use substitute to implement a function betaReduce t that applies a beta reduction to top level of the term t.
 
 betaReduce :: Term -> Term
-betaReduce t = undefined
+betaReduce (App (Abs id term) rterm) = substitute (id , rterm) term
+betaReduce _ = undefined
