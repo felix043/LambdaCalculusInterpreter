@@ -3,9 +3,9 @@ import Data.List (nub, (\\))
 
 type Id = String
 
-data Term = Var Id      -- Variables
-    | Abs Id Term       -- Abstractions
-    | App Term Term deriving (Show, Eq)    -- Applications
+data Term = Var Id                          -- Variables
+    | Abs Id Term                           -- Abstractions
+    | App Term Term deriving (Show, Eq)     -- Applications
 
 -- 1. Implement a function freeVars t that returns a set of all free variables within a lambda term t. You may want to represent sets as lists without duplicates. 
 -- Appendix A.2 of the lecture notes contains recursive definitions of non-freeness that you may find useful.
@@ -22,7 +22,7 @@ freeVars (App lterm rterm) = freeVars lterm ++ freeVars rterm
 substitute :: (Id, Term) -> Term -> Term
 substitute (x, tx) (Var a) | x == a = tx 
                            | otherwise = Var a
-substitute (x, tx) (Abs id term) | x == id = Abs id tx
+substitute (x, tx) (Abs id term) | x == id = tx
                                  | x `notElem` freeVars term = substitute (x, tx) term
                                  | otherwise = Abs id term
 substitute (x, tx) (App lterm rterm) = App (substitute (x, tx) lterm) (substitute (x, tx) rterm)
@@ -37,7 +37,8 @@ isBetaRedex _ = False
 betaReduce :: Term -> Term
 betaReduce (Var id) = Var id
 betaReduce (Abs id term) = Abs id term
-betaReduce (App (Abs id term) rterm) = substitute (id, rterm) term
+betaReduce (App (Abs id term) (Var id2)) = substitute (id, Var id2) term
+betaReduce (App (Abs id term) (Abs id2 term2)) = substitute (id, (Abs id2 term2)) term
 betaReduce (App lterm rterm) = App (betaReduce lterm) rterm
 
 -- 5. leftmostOutermost, leftmostInnermost that perform a single reduction step using the appropriate evaluation strategy.
@@ -46,11 +47,17 @@ leftmostOutermost (Var id) = Var id
 leftmostOutermost (Abs id term) = Abs id term
 leftmostOutermost (App lterm (Var id)) = betaReduce (App lterm (Var id))
 leftmostOutermost (App lterm (Abs id term)) = betaReduce (App lterm (Abs id term))
-leftmostOutermost (App lterm rterm) = App (betaReduce lterm) rterm
+leftmostOutermost (App lterm rterm) | isBetaRedex lterm =  App (betaReduce lterm) rterm
+                                    | isBetaRedex rterm = App lterm (betaReduce rterm)
+                                    | otherwise = App lterm rterm
 
 derivation :: (Term -> Term) -> Term -> [Term]
 derivation = undefined
 
 reduce :: Term -> Term
 reduce term | isBetaRedex term = reduce (leftmostOutermost term)
-            | otherwise = undefined
+            | otherwise = term
+
+
+-- :=           substitute
+-- =^           syntactic equivalence (T =^ not not T)
