@@ -5,11 +5,10 @@ type Id = String
 
 data Term = Var Id      -- Variables
     | Abs Id Term       -- Abstractions
-    | App Term Term deriving Show    -- Applications
+    | App Term Term deriving (Show, Eq)    -- Applications
 
 -- 1. Implement a function freeVars t that returns a set of all free variables within a lambda term t. You may want to represent sets as lists without duplicates. 
 -- Appendix A.2 of the lecture notes contains recursive definitions of non-freeness that you may find useful.
-
 freeVars :: Term -> [Id]
 freeVars (Var id) = [id]
 freeVars (Abs id term) = nub (freeVars term) \\ [id]
@@ -20,7 +19,6 @@ freeVars (App lterm rterm) = freeVars lterm ++ freeVars rterm
 -- Take care to avoid capturing substitutions (you will have to do some alpha renaming with fresh variables to avoid this).
 -- Appendix A.2 of the lecture notes contains a recursive definition of substitution that you may find useful. 
 -- In case you find the task of avoiding variable capture too challenging, skip this and only use terms with unique bound and free variable names.
-
 substitute :: (Id, Term) -> Term -> Term
 substitute (x, tx) (Var a) | x == a = tx 
                            | otherwise = Var a
@@ -28,21 +26,14 @@ substitute (x, tx) (Abs id term) | x == id = Abs id tx
                                  | x `notElem` freeVars term = substitute (x, tx) term
                                  | otherwise = Abs id term
 substitute (x, tx) (App lterm rterm) = App (substitute (x, tx) lterm) (substitute (x, tx) rterm)
--- x /= id && id `notElem` freeVars term
-
--- >>> betaReduce (App (Abs "x" (Abs "y" (App (Var "x") (Var "y")))) (Var "y"))
--- Abs "y" (App (Var "x") (Var "y"))
-
 
 -- 3. Implement a function isBetaRedex t which returns True if the top level of the term t is a beta redex.
-
 isBetaRedex :: Term -> Bool
 isBetaRedex (App (Abs _ _) (Abs _ _)) = True
 isBetaRedex (App (Abs _ _) (Var _)) = True 
 isBetaRedex _ = False
 
 -- 4. Use substitute to implement a function betaReduce t that applies a beta reduction to top level of the term t.
-
 betaReduce :: Term -> Term
 betaReduce (Var id) = Var id
 betaReduce (Abs id term) = Abs id term
@@ -50,7 +41,6 @@ betaReduce (App (Abs id term) rterm) = substitute (id, rterm) term
 betaReduce (App lterm rterm) = App (betaReduce lterm) rterm
 
 -- 5. leftmostOutermost, leftmostInnermost that perform a single reduction step using the appropriate evaluation strategy.
-
 leftmostOutermost :: Term -> Term
 leftmostOutermost (Var id) = Var id
 leftmostOutermost (Abs id term) = Abs id term
@@ -58,8 +48,9 @@ leftmostOutermost (App lterm (Var id)) = betaReduce (App lterm (Var id))
 leftmostOutermost (App lterm (Abs id term)) = betaReduce (App lterm (Abs id term))
 leftmostOutermost (App lterm rterm) = App (betaReduce lterm) rterm
 
---leftmostInnermost (App lterm rterm) = App (betaReduce (lterm)) rterm 
+derivation :: (Term -> Term) -> Term -> [Term]
+derivation = undefined
 
-
-
--- App (Abs "x" (Abs "y" (App (Var "x") (Var "y")))) (Var "y")
+reduce :: Term -> Term
+reduce term | isBetaRedex term = reduce (leftmostOutermost term)
+            | otherwise = undefined
