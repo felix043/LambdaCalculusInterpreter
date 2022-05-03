@@ -25,23 +25,21 @@ substitute :: (Id, Term) -> Term -> Term
 substitute (x, tx) (Var a) | x == a = tx 
                            | otherwise = Var a
 substitute (x, tx) (Abs id term) | x == id = Abs id tx
-                                 | x `elem` freeVars term = substitute (x, tx) term
+                                 | x `notElem` freeVars term = substitute (x, tx) term
                                  | otherwise = Abs id term
 substitute (x, tx) (App lterm rterm) = App (substitute (x, tx) lterm) (substitute (x, tx) rterm)
+-- x /= id && id `notElem` freeVars term
+
+-- >>> betaReduce (App (Abs "x" (Abs "y" (App (Var "x") (Var "y")))) (Var "y"))
+-- Abs "y" (App (Var "x") (Var "y"))
+
 
 -- 3. Implement a function isBetaRedex t which returns True if the top level of the term t is a beta redex.
 
 isBetaRedex :: Term -> Bool
-isBetaRedex (App lterm rterm) = isAbs lterm && (isVar rterm || isAbs rterm)
+isBetaRedex (App (Abs _ _) (Abs _ _)) = True
+isBetaRedex (App (Abs _ _) (Var _)) = True 
 isBetaRedex _ = False
-
-isAbs :: Term -> Bool
-isAbs (Abs _ _) = True 
-isAbs _ = False 
-
-isVar :: Term -> Bool
-isVar (Var _) = True 
-isVar _ = False 
 
 -- 4. Use substitute to implement a function betaReduce t that applies a beta reduction to top level of the term t.
 
@@ -56,18 +54,12 @@ betaReduce (App lterm rterm) = App (betaReduce lterm) rterm
 leftmostOutermost :: Term -> Term
 leftmostOutermost (Var id) = Var id
 leftmostOutermost (Abs id term) = Abs id term
+leftmostOutermost (App lterm (Var id)) = betaReduce (App lterm (Var id))
+leftmostOutermost (App lterm (Abs id term)) = betaReduce (App lterm (Abs id term))
 leftmostOutermost (App lterm rterm) = App (betaReduce lterm) rterm
-
-leftmostInnermost :: Term -> Term
-leftmostInnermost (Var id) = Var id
-leftmostInnermost (Abs id term) = Abs id term 
-leftmostInnermost (App lterm rterm) | isBetaRedex lterm = leftmostInnermost (App (getLeft lterm) rterm) 
-                                    | otherwise = App (betaReduce lterm) rterm
 
 --leftmostInnermost (App lterm rterm) = App (betaReduce (lterm)) rterm 
 
-getLeft :: Term -> Term
-getLeft (Var id) = Var id
-getLeft (Abs id term) = Abs id term
-getLeft (App lterm rterm) = lterm
 
+
+-- App (Abs "x" (Abs "y" (App (Var "x") (Var "y")))) (Var "y")
