@@ -39,7 +39,9 @@ betaReduce (Var id) = Var id
 betaReduce (Abs id term) = Abs id term
 betaReduce (App (Abs id term) (Var id2)) = substitute (id, Var id2) term
 betaReduce (App (Abs id term) (Abs id2 term2)) = substitute (id, (Abs id2 term2)) term
-betaReduce (App lterm rterm) = App (betaReduce lterm) rterm
+betaReduce (App lterm rterm) | isBetaRedex lterm =  App (betaReduce lterm) rterm
+                             | isBetaRedex rterm = App lterm (betaReduce rterm)
+                             | otherwise = App lterm rterm
 
 -- 5. leftmostOutermost, leftmostInnermost that perform a single reduction step using the appropriate evaluation strategy.
 leftmostOutermost :: Term -> Term
@@ -47,9 +49,7 @@ leftmostOutermost (Var id) = Var id
 leftmostOutermost (Abs id term) = Abs id term
 leftmostOutermost (App lterm (Var id)) = betaReduce (App lterm (Var id))
 leftmostOutermost (App lterm (Abs id term)) = betaReduce (App lterm (Abs id term))
-leftmostOutermost (App lterm rterm) | isBetaRedex lterm =  App (betaReduce lterm) rterm
-                                    | isBetaRedex rterm = App lterm (betaReduce rterm)
-                                    | otherwise = App lterm rterm
+leftmostOutermost (App lterm rterm) = App (betaReduce lterm) rterm
 
 derivation :: (Term -> Term) -> Term -> [Term]
 derivation = undefined
